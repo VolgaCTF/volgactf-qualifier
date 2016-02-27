@@ -8,6 +8,7 @@ This repository is meant to be a meta-repository containing general information 
 2. [themis-quals-cookbook](https://github.com/aspyatkin/themis-quals-cookbook) - Chef cookbook to provision Themis Quals server
 3. [themis-quals-frontend](https://github.com/aspyatkin/themis-quals-frontend) - Platform web interface (mainly ES6)
 4. [themis-quals-backend](https://github.com/aspyatkin/themis-quals-backend) - Platform backend (ES6)
+5. [themis-quals-customizer-default](https://github.com/aspyatkin/themis-quals-customizer-default) - Platform customization package (ES6)
 
 ## Contributors
 1. [Alexander Pyatkin](https://github.com/aspyatkin)
