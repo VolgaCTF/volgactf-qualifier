@@ -10,6 +10,9 @@ This repository is meant to be a meta-repository containing general information 
 4. [themis-quals-backend](https://github.com/aspyatkin/themis-quals-backend) - Platform backend (ES6)
 5. [themis-quals-customizer-default](https://github.com/aspyatkin/themis-quals-customizer-default) - Platform customization package (ES6)
 
+## VolgaCTF
+Themis Quals is a basis platform for [VolgaCTF](https://volgactf.ru) with several customizations made by means of [themis-quals-customizer-volgactf](https://github.com/VolgaCTF/themis-quals-customizer-volgactf) package.
+
 ## Contributors
 1. [Alexander Pyatkin](https://github.com/aspyatkin)
 2. [Alexey Volkov](https://github.com/volalex)
