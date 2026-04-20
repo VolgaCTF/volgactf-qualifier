@@ -1,0 +1,88 @@
+volgactf:
+  qualifier:
+    event:
+      title: VolgaCTF Qualifier
+    network:
+      name: volgactf_qualifier_test
+      cidr: 192.168.229.0/24
+    db:
+      root_pwd: 'V0lgactf_qu4lifi3r!'
+      admin_pwd: 'V0lgactf_qu4lifi3r!'
+      writer_pwd: 'V0lgactf_qu4lifi3r!'
+      reader_pwd: 'V0lgactf_qu4lifi3r!'
+    expose_ports:
+      start: 29900
+      end: 29999
+    hostname: 'qualifier.volgactf.test'
+    web:
+      replicas: 2
+    smtp:
+      host: 'mailpit'
+      port: 1025
+      secure: no
+      headers_json: '{}'
+    email:
+      transport: 'smtp'
+      sender:
+        name: 'VolgaCTF Qualifier'
+        address: 'noreply@volgactf.org'
+      address_validator:
+        type: 'default'
+        ignore_list: []
+    notification:
+      post_news: yes
+      post_telegram: yes
+    telegram:
+      chat_id: '-1003808386987'
+    github:
+      org: 'VolgaCTF'
+      filter_topics:
+        - volgactf-qualifier-test
+    remote_filestore:
+      hostname: files.qualifier.volgactf.test
+      s3_bucket:
+        name: 'files'
+        create: true
+    template:
+      check_mtime: yes
+    stream:
+      max_connections: 1024
+      redis_channel: 'volgactf_qualifier_realtime'
+    scheduler:
+      check_contest_interval: 10
+      check_tasks_interval: 20
+      recalculate_interval: 60
+    scoring:
+      dynlog:
+        min: 50
+        max: 500
+        k: 81.1
+        v: 3.2
+    queue:
+      replicas: 2
+      prefix: 'volgactf-qualifier'
+    upload:
+      max_data_size: 1
+      max_team_logo_size: 1
+      max_task_file_size: 5120
+      max_task_file_timeout: 600
+    nginx:
+      image: 'volgactf/volgactf-qualifier-nginx:latest'
+    redis:
+      image: 'redis:8.6.0'
+    postgres:
+      image: 'postgres:18.2'
+    database:
+      image: 'volgactf/volgactf-qualifier-database:latest'
+    backend:
+      image: 'volgactf/volgactf-qualifier-backend:latest'
+    frontend:
+      image: 'volgactf/volgactf-qualifier-frontend:latest'
+    proxy:
+      image: 'sameersbn/squid:latest'
+    pgclient:
+      image: 'adminer:5.4.2'
+    mailpit:
+      image: 'axllent/mailpit:v1.29'
+    seaweedfs:
+      image: 'chrislusf/seaweedfs:4.17'

@@ -1,2 +1,4 @@
 .venv
 vars.yml
+.env*
+.zsh-*

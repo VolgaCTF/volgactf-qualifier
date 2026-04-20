@@ -1,0 +1,20 @@
+# Post-generator
+
+Congrats, you have a ready docker compose project! Here's an overview of the most important things:
+
+Your project runs in `{{ volgactf.qualifier.network.cidr }}` network.
+
+Your system will be available under this hostname: [{{ volgactf.qualifier.hostname }}](https://{{ volgactf.qualifier.hostname }}) provided that:
+1. you have configured your host system to resolve `{{ volgactf.qualifier.hostname }}` to `{{ volgactf.qualifier.transient.nginx.ip_address }}`.
+2. and you are connected to one of the following proxies in your browser:
+- `127.0.0.1:{{ volgactf.qualifier.transient['proxy-admin'].port }}`
+
+Additionally, you can go to `127.0.0.1:{{ volgactf.qualifier.transient.pgclient.port }}` to explore the system database. Use the following credentials:
+- database type: PostgreSQL
+- database hostname: `postgres`
+- database port: 5432
+- database name: `volgactf_qualifier`
+- database username: `volgactf_qualifier_reader`
+- database password: `{{ volgactf.qualifier.db.reader_pwd }}`
+
+Refer to the generator documentation for more information on control and maintenance tools.

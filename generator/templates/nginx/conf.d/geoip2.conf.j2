@@ -1,0 +1,20 @@
+{% if volgactf.qualifier.transient.maxmind_enabled %}
+geoip2 /etc/nginx/maxmind/GeoLite2-Country.mmdb {
+  $geoip2_data_country_code default=- source=$remote_addr country iso_code;
+  $geoip2_data_country_name default=- source=$remote_addr country names en;
+}
+
+geoip2 /etc/nginx/maxmind/GeoLite2-City.mmdb {
+  $geoip2_data_city_name default=- source=$remote_addr city names en;
+}
+{% else %}
+map '' $geoip2_data_country_code {
+  default -;
+}
+map '' $geoip2_data_country_name {
+  default -;
+}
+map '' $geoip2_data_city_name {
+  default -;
+}
+{% endif %}

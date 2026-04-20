@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -e
+
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+	ALTER SYSTEM SET password_encryption = 'scram-sha-256';
+
+	CREATE USER volgactf_qualifier_admin WITH PASSWORD '{{ volgactf.qualifier.db.admin_pwd }}';
+	CREATE USER volgactf_qualifier_writer WITH PASSWORD '{{ volgactf.qualifier.db.writer_pwd }}';
+	CREATE USER volgactf_qualifier_reader WITH PASSWORD '{{ volgactf.qualifier.db.reader_pwd }}';
+
+	CREATE DATABASE volgactf_qualifier;
+EOSQL
+
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname volgactf_qualifier <<-EOSQL
+	GRANT ALL PRIVILEGES ON DATABASE volgactf_qualifier TO volgactf_qualifier_admin;
+	GRANT ALL PRIVILEGES ON SCHEMA public TO volgactf_qualifier_admin;
+
+	GRANT CONNECT ON DATABASE volgactf_qualifier TO volgactf_qualifier_writer;
+	GRANT USAGE ON SCHEMA public TO volgactf_qualifier_writer;
+	GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO volgactf_qualifier_writer;
+	ALTER DEFAULT PRIVILEGES FOR USER volgactf_qualifier_admin IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO volgactf_qualifier_writer;
+	GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO volgactf_qualifier_writer;
+	ALTER DEFAULT PRIVILEGES FOR USER volgactf_qualifier_admin IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO volgactf_qualifier_writer;
+
+	GRANT CONNECT ON DATABASE volgactf_qualifier TO volgactf_qualifier_reader;
+	GRANT USAGE ON SCHEMA public TO volgactf_qualifier_reader;
+	GRANT SELECT ON ALL TABLES IN SCHEMA public TO volgactf_qualifier_reader;
+	ALTER DEFAULT PRIVILEGES FOR USER volgactf_qualifier_admin IN SCHEMA public GRANT SELECT ON TABLES TO volgactf_qualifier_reader;
+EOSQL

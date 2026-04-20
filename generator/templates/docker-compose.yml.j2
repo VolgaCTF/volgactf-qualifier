@@ -1,0 +1,168 @@
+networks:
+  {{ volgactf.qualifier.network.name }}:
+    ipam:
+      driver: default
+      config:
+        - subnet: {{ volgactf.qualifier.network.cidr }}
+          ip_range: {{ volgactf.qualifier.transient.dynamic_subnet }}
+          gateway: {{ volgactf.qualifier.transient.gateway.ip_address }}
+
+volumes:
+  redis-persistence-volume:
+  postgres-data-volume:
+
+services:
+  # system
+  nginx:
+    image: {{ volgactf.qualifier.nginx.image }}
+    networks:
+      {{ volgactf.qualifier.network.name }}:
+        ipv4_address: {{ volgactf.qualifier.transient.nginx.ip_address }}
+    restart: always
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/sites-enabled:/etc/nginx/sites-enabled
+      - ./nginx/certs:/etc/nginx/certs
+      - ./nginx/maxmind:/etc/nginx/maxmind
+      - ./task_files:/opt/volgactf/qualifier/task_files
+      - ./team_logos:/opt/volgactf/qualifier/team_logos
+      - ./team_logo_default/default.png:/opt/volgactf/qualifier/default.png
+      - ./dist:/opt/volgactf/qualifier/dist
+    depends_on:
+      - volgactf-qualifier-web
+      - seaweedfs
+  redis:
+    image: {{ volgactf.qualifier.redis.image }}
+    networks:
+      - {{ volgactf.qualifier.network.name }}
+    restart: always
+    volumes:
+      - redis-persistence-volume:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+  postgres:
+    image: {{ volgactf.qualifier.postgres.image }}
+    networks:
+      - {{ volgactf.qualifier.network.name }}
+    restart: always
+    volumes:
+      - postgres-data-volume:/var/lib/postgresql
+      - ./postgres/init_db.sh:/docker-entrypoint-initdb.d/init_db.sh:ro
+    environment:
+      - POSTGRES_PASSWORD={{ volgactf.qualifier.db.root_pwd }}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U volgactf_qualifier_admin -d volgactf_qualifier"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  volgactf-qualifier-scheduler:
+    image: {{ volgactf.qualifier.backend.image }}
+    networks:
+      - {{ volgactf.qualifier.network.name }}
+    restart: always
+    command: "scheduler"
+    env_file:
+      - ./env/redis.env
+      - ./env/volgactf-qualifier-scheduler.env
+    depends_on:
+      - redis
+  volgactf-qualifier-queue:
+    image: {{ volgactf.qualifier.backend.image }}
+    networks:
+      - {{ volgactf.qualifier.network.name }}
+    deploy:
+      replicas: {{ volgactf.qualifier.queue.replicas }}
+    restart: always
+    command: "queue"
+    env_file:
+      - ./env/redis.env
+      - ./env/postgres-common.env
+      - ./env/postgres-volgactf-writer.env
+      - ./env/volgactf-qualifier-queue.env
+    volumes:
+      - ./team_logos:/opt/volgactf/qualifier/team_logos
+      - ./upload:/opt/volgactf/qualifier/upload
+    depends_on:
+      - postgres
+      - redis
+  volgactf-qualifier-web:
+    image: {{ volgactf.qualifier.backend.image }}
+    networks:
+      - {{ volgactf.qualifier.network.name }}
+    deploy:
+      replicas: {{ volgactf.qualifier.web.replicas }}
+    restart: always
+    command: "web"
+    env_file:
+      - ./env/redis.env
+      - ./env/postgres-common.env
+      - ./env/postgres-volgactf-writer.env
+      - ./env/volgactf-qualifier-web.env
+    volumes:
+      - ./team_logos:/opt/volgactf/qualifier/team_logo
+      - ./upload:/opt/volgactf/qualifier/upload
+      - ./dist:/opt/volgactf/qualifier/dist
+      - ./task_files:/opt/volgactf/qualifier/task_files
+    depends_on:
+      - postgres
+      - redis
+
+  # admin
+  proxy-admin:
+    image: {{ volgactf.qualifier.proxy.image }}
+    networks:
+      {{ volgactf.qualifier.network.name }}:
+        ipv4_address: {{ volgactf.qualifier.transient['proxy-admin'].ip_address }}
+    restart: always
+    ports:
+      - "{{ volgactf.qualifier.transient['proxy-admin'].port }}:3128"
+    volumes:
+      - ./proxy/squid.conf:/etc/squid/squid.conf:ro
+    extra_hosts:
+      - "{{ volgactf.qualifier.hostname }}:{{ volgactf.qualifier.transient.nginx.ip_address }}"
+      - "{{ volgactf.qualifier.remote_filestore.hostname }}:{{ volgactf.qualifier.transient.nginx.ip_address }}"
+    depends_on:
+      - nginx
+  pgclient:
+    image: {{ volgactf.qualifier.pgclient.image }}
+    networks:
+      {{ volgactf.qualifier.network.name }}:
+        ipv4_address: {{ volgactf.qualifier.transient.pgclient.ip_address }}
+    restart: always
+    ports:
+      - "{{ volgactf.qualifier.transient.pgclient.port }}:8080"
+    depends_on:
+      - postgres
+  mailpit:
+    image: {{ volgactf.qualifier.mailpit.image }}
+    networks:
+      {{ volgactf.qualifier.network.name }}:
+        ipv4_address: {{ volgactf.qualifier.transient.mailpit.ip_address }}
+    restart: always
+    ports:
+      - "{{ volgactf.qualifier.transient.mailpit.port }}:8025"
+    env_file:
+      - ./env/mailpit.env
+  seaweedfs:
+    image: {{ volgactf.qualifier.seaweedfs.image }}
+    networks:
+      {{ volgactf.qualifier.network.name }}:
+        ipv4_address: {{ volgactf.qualifier.transient.seaweedfs.ip_address }}
+    command: >
+      server
+      -dir=/data
+      -s3
+      -s3.port=8333
+      -s3.config=/etc/seaweedfs/s3-config.json
+      -filer
+      -filer.port=8888
+    ports:
+      - "{{ volgactf.qualifier.transient.seaweedfs.port }}:8333"
+    volumes:
+      - ./remote_filestore:/data
+      - ./seaweedfs/s3-config.json:/etc/seaweedfs/s3-config.json

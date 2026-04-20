@@ -1,0 +1,174 @@
+upstream volgactf_qualifier_backend {
+  server volgactf-qualifier-web:8000;
+}
+
+server {
+  listen 80 default_server;
+  server_name {{ volgactf.qualifier.hostname }};
+
+  location / {
+    return 301 https://$host$request_uri;
+  }
+}
+
+server {
+  server_name {{ volgactf.qualifier.hostname }};
+  listen 443 ssl default_server;
+
+  http2 on;
+  keepalive_timeout 300;
+  charset utf-8;
+
+  server_tokens off;
+
+  ssl_certificate /etc/nginx/certs/{{ volgactf.qualifier.hostname }}.pem;
+  ssl_certificate_key /etc/nginx/certs/{{ volgactf.qualifier.hostname }}-key.pem;
+
+  access_log /dev/stdout volgactf_qualifier_log;
+  error_log /dev/stderr error;
+
+  client_max_body_size {{ volgactf.qualifier.upload.max_data_size }}m;
+
+  location /assets/css {
+    alias /opt/volgactf/qualifier/dist/target/frontend/assets/css;
+    expires 1d;
+    access_log off;
+    add_header Cache-Control public;
+    add_header Strict-Transport-Security "max-age=15768000" always;
+    gzip_static on;
+    brotli_static on;
+  }
+
+  location /assets/js {
+    alias /opt/volgactf/qualifier/dist/target/frontend/assets/js;
+    expires 1d;
+    access_log off;
+    add_header Cache-Control public;
+    add_header Strict-Transport-Security "max-age=15768000" always;
+    gzip_static on;
+    brotli_static on;
+  }
+
+  location /assets/fonts {
+    alias /opt/volgactf/qualifier/dist/target/frontend/assets/fonts;
+    expires 1d;
+    access_log off;
+    add_header Cache-Control public;
+    add_header Access-Control-Allow-Origin {{ volgactf.qualifier.hostname }};
+    add_header Strict-Transport-Security "max-age=15768000" always;
+    gzip_static on;
+    brotli_static on;
+  }
+
+  location /assets/images {
+    alias /opt/volgactf/qualifier/dist/target/frontend/assets/images;
+    expires 1d;
+    access_log off;
+    add_header Cache-Control public;
+    add_header Strict-Transport-Security "max-age=15768000" always;
+  }
+
+  location /files {
+    alias /opt/volgactf/qualifier/task_files;
+    expires 1d;
+    add_header Cache-Control public;
+    add_header Strict-Transport-Security "max-age=15768000" always;
+  }
+
+  location ~ ^/team/logo/(\d+)/(\w+)$ {
+    alias /opt/volgactf/qualifier/team_logos;
+    expires 1d;
+    try_files /$1.png /team_logo_default;
+    add_header Cache-Control public;
+    add_header Strict-Transport-Security "max-age=15768000" always;
+  }
+
+  location = /team_logo_default {
+    internal;
+    alias /opt/volgactf/qualifier/default.png;
+    expires 1d;
+    add_header Cache-Control public;
+    add_header Strict-Transport-Security "max-age=15768000" always;
+  }
+
+  location /api/stream {
+    proxy_set_header Connection '';
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto https;
+
+    proxy_pass http://volgactf_qualifier_backend/api/stream;
+    proxy_redirect off;
+
+    proxy_http_version 1.1;
+    chunked_transfer_encoding off;
+    proxy_buffering off;
+    proxy_cache off;
+    proxy_read_timeout 30m;
+
+    add_header Strict-Transport-Security "max-age=15768000" always;
+  }
+
+  location /api/team/signup {
+    client_max_body_size {{ volgactf.qualifier.upload.max_team_logo_size }}m;
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto https;
+
+    proxy_set_header X-GeoIP-Country-Code $geoip2_data_country_code;
+    proxy_set_header X-GeoIP-Country-Name $geoip2_data_country_name;
+    proxy_set_header X-GeoIP-City-Name $geoip2_data_city_name;
+
+    proxy_pass http://volgactf_qualifier_backend/api/team/signup;
+    proxy_redirect off;
+
+    proxy_http_version 1.1;
+
+    add_header Strict-Transport-Security "max-age=15768000" always;
+  }
+
+  location ~ ^/api/task/(\d+)/file/create$ {
+    client_max_body_size {{ volgactf.qualifier.upload.max_task_file_size }}m;
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto https;
+
+    proxy_set_header X-GeoIP-Country-Code $geoip2_data_country_code;
+    proxy_set_header X-GeoIP-Country-Name $geoip2_data_country_name;
+    proxy_set_header X-GeoIP-City-Name $geoip2_data_city_name;
+
+    proxy_pass http://volgactf_qualifier_backend$request_uri;
+    proxy_redirect off;
+
+    proxy_http_version 1.1;
+
+    proxy_read_timeout {{ volgactf.qualifier.upload.max_task_file_timeout }}s;
+    proxy_send_timeout {{ volgactf.qualifier.upload.max_task_file_timeout }}s;
+    keepalive_timeout {{ volgactf.qualifier.upload.max_task_file_timeout }}s;
+
+    add_header Strict-Transport-Security "max-age=15768000" always;
+  }
+
+  location / {
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto https;
+
+    proxy_set_header X-GeoIP-Country-Code $geoip2_data_country_code;
+    proxy_set_header X-GeoIP-Country-Name $geoip2_data_country_name;
+    proxy_set_header X-GeoIP-City-Name $geoip2_data_city_name;
+
+    proxy_pass http://volgactf_qualifier_backend/;
+    proxy_redirect off;
+
+    proxy_http_version 1.1;
+
+    add_header Strict-Transport-Security "max-age=15768000" always;
+    brotli on;
+    brotli_types application/json;
+  }
+}

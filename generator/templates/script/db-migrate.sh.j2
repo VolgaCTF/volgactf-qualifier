@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+PROJECT=`docker compose ls -q`
+docker run --rm -a STDIN -a STDOUT -a STDERR --network ${PROJECT}_{{ volgactf.qualifier.network.name }} --env-file ./env/postgres-common.env --env-file ./env/postgres-volgactf-admin.env {{ volgactf.qualifier.database.image }} knex migrate:latest
+RETVAL=$?
+exit $RETVAL
